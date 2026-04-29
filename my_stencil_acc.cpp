@@ -5,6 +5,8 @@
 #include <chrono>
 #include <openacc.h>
 
+#pragma STDC FP_CONTRACT OFF
+
 using real_t = float;
 
 class Timer {
