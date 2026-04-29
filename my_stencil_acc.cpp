@@ -61,9 +61,8 @@ int main(int argc, char* argv[]) {
         for (int i = 0; i < iterations; ++i) {
             real_t* s = bufs[i & 1];
             real_t* d = bufs[1 - (i & 1)];
-            #pragma acc parallel loop gang present(s[0:x*y], d[0:x*y])
+            #pragma acc parallel loop present(s[0:x*y], d[0:x*y]) collapse(2)
             for(int j = 1; j < x - 1; ++j) {
-                #pragma acc loop vector
                 for(int k = 1; k < y - 1; ++k) {
                     d[j * y + k] = 0.2f * (s[j * y + k] + s[(j-1)*y+k] + s[(j+1)*y+k] + s[j*y+k-1] + s[j*y+k+1]);
                 }
