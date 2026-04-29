@@ -38,7 +38,8 @@ int main(int argc, char* argv[]) {
     std::vector<real_t> a(x * y, 0.0f);
     std::vector<real_t> b(x * y, 0.0f);
 
-    real_t* bufs[2] = {a.data(), b.data()};
+    real_t* p0 = a.data();
+    real_t* p1 = b.data();
 
     const int cx = x / 2;
     const int cy = y / 2;
@@ -48,7 +49,7 @@ int main(int argc, char* argv[]) {
     for (int i = 1; i < x - 1; ++i) {
         for (int j = 1; j < y - 1; ++j) {
             if (std::abs(i - cx) < hx && std::abs(j - cy) < hy) {
-                bufs[0][i * y + j] = 100.0f;
+                p0[i * y + j] = 100.0f;
             }
         }
     }
@@ -61,23 +62,25 @@ int main(int argc, char* argv[]) {
 
     Timer timer;
 
-    #pragma acc data copyin(bufs[0][0:x*y]) create(bufs[1][0:x*y])
+    #pragma acc data copy(p0[0:x*y], p1[0:x*y])
     {
-        for (int i = 0; i < iterations; ++i) {
-            real_t* s = bufs[i & 1];
-            real_t* d = bufs[1 - (i & 1)];
-            #pragma acc parallel loop present(s[0:x*y], d[0:x*y]) collapse(2)
-            for(int j = 1; j < x - 1; ++j) {
-                for(int k = 1; k < y - 1; ++k) {
-                    d[j * y + k] = 0.2f * (s[j * y + k] + s[(j-1)*y+k] + s[(j+1)*y+k] + s[j*y+k-1] + s[j*y+k+1]);
-                }
+        for (int i = 0; i < iterations; i += 2) {
+            #pragma acc parallel loop collapse(2)
+            for(int j = 1; j < x - 1; ++j)
+                for(int k = 1; k < y - 1; ++k)
+                    p1[j*y+k] = 0.2f*(p0[j*y+k]+p0[(j-1)*y+k]+p0[(j+1)*y+k]+p0[j*y+k-1]+p0[j*y+k+1]);
+
+            if (i + 1 < iterations) {
+                #pragma acc parallel loop collapse(2)
+                for(int j = 1; j < x - 1; ++j)
+                    for(int k = 1; k < y - 1; ++k)
+                        p0[j*y+k] = 0.2f*(p1[j*y+k]+p1[(j-1)*y+k]+p1[(j+1)*y+k]+p1[j*y+k-1]+p1[j*y+k+1]);
             }
         }
-        #pragma acc update host(bufs[0][0:x*y], bufs[1][0:x*y])
     }
     double elapsed_seconds = timer.elapsed_seconds();
     std::cout << "elapsed_seconds=" << elapsed_seconds << "\n";
-    real_t* src = bufs[iterations & 1];
+    real_t* src = (iterations & 1) ? p1 : p0;
     double checksum = 0.0;
     for (int i = 0; i < x * y; ++i) {
         checksum += src[i];
