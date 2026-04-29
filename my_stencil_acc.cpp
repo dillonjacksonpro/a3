@@ -7,6 +7,11 @@
 
 using real_t = float;
 
+/*
+salloc --partition=rss-class --gres=gpu:1 --cpus-per-task=16
+  srun ./run_benchmarks.sh
+*/
+
 class Timer {
 public:
     Timer() : start_(clock::now()) {}
@@ -68,8 +73,7 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
-        real_t* final_buf = bufs[iterations & 1];
-        #pragma acc update host(final_buf[0:x*y])
+        #pragma acc update host(bufs[0][0:x*y], bufs[1][0:x*y])
     }
     double elapsed_seconds = timer.elapsed_seconds();
     std::cout << "elapsed_seconds=" << elapsed_seconds << "\n";
