@@ -1,0 +1,37 @@
+===== ./stencil_serial 8192 8192 1000 =====
+program=stencil_serial
+nx=8192
+ny=8192
+steps=1000
+runtime_seconds=43.303745
+checksum=419021946.6262273192
+
+===== ./my_stencil_omp 8192 8192 1000 16 =====
+program=my stencil_omp
+nx=8192
+ny=8192
+steps=1000
+threads=16
+elapsed_seconds=9.37128
+checksum=419021946.626227
+
+===== ./my_stencil_acc 8192 8192 1000 =====
+program=my_stencil_acc
+nx=8192
+ny=8192
+steps=1000
+elapsed_seconds=3.72454
+checksum=419020900.000000
+
+Explanation:
+
+Firstly I moved the omp and acc implementations to seperate c source files for ergonomics. The original was too busy for me.
+
+Secondly, there is a difference in the checksums between serial and omp, and acc. Apparently this comes from different floating point computation between the cpu and gpu. To fix this requires changing the fp computation type on the cpu.
+
+The speed up can be attributed to increasing parallelism. 
+The difference between serial and omp, is spreading the hotspot over 16 threads.
+The difference between omp and acc is spreading the hotspot over the the gpus workers.
+
+While the speedup between serial and omp is large, the speedup from omp to acc is relatively small.
+Additionally, the loss of floating point accuracy is concerning depending on the use case. A 6 second speedup may not be worth the accuracy loss. 

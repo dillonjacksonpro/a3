@@ -33,8 +33,7 @@ int main(int argc, char* argv[]) {
     std::vector<real_t> a(x * y, 0.0f);
     std::vector<real_t> b(x * y, 0.0f);
 
-    real_t* src = a.data();
-    real_t* dst = b.data();
+    real_t* bufs[2] = {a.data(), b.data()};
 
     const int cx = x / 2;
     const int cy = y / 2;
@@ -44,7 +43,7 @@ int main(int argc, char* argv[]) {
     for (int i = 1; i < x - 1; ++i) {
         for (int j = 1; j < y - 1; ++j) {
             if (std::abs(i - cx) < hx && std::abs(j - cy) < hy) {
-                src[i * y + j] = 100.0f;
+                bufs[0][i * y + j] = 100.0f;
             }
         }
     }
@@ -57,19 +56,25 @@ int main(int argc, char* argv[]) {
 
     Timer timer;
 
-    // Copy data to device
-    #pragma acc data copy(src[0:x*y], dst[0:x*y])
-    for (int i = 0; i < iterations; ++i) {
-        #pragma acc parallel loop collapse(2)
-        for(int j = 1; j < x - 1; ++j) {
-            for(int k = 1; k < y - 1; ++k) {
-                dst[j * y + k] = 0.2f * (src[j * y + k] + src[(j-1) * y + k] + src[(j+1) * y + k] + src[j * y + k-1] + src[j * y + k+1]);
+    #pragma acc data copyin(bufs[0][0:x*y]) create(bufs[1][0:x*y])
+    {
+        for (int i = 0; i < iterations; ++i) {
+            real_t* s = bufs[i & 1];
+            real_t* d = bufs[1 - (i & 1)];
+            #pragma acc parallel loop gang present(s[0:x*y], d[0:x*y])
+            for(int j = 1; j < x - 1; ++j) {
+                #pragma acc loop vector
+                for(int k = 1; k < y - 1; ++k) {
+                    d[j * y + k] = 0.2f * (s[j * y + k] + s[(j-1)*y+k] + s[(j+1)*y+k] + s[j*y+k-1] + s[j*y+k+1]);
+                }
             }
         }
-        std::swap(src, dst);
+        real_t* final_buf = bufs[iterations & 1];
+        #pragma acc update host(final_buf[0:x*y])
     }
     double elapsed_seconds = timer.elapsed_seconds();
     std::cout << "elapsed_seconds=" << elapsed_seconds << "\n";
+    real_t* src = bufs[iterations & 1];
     double checksum = 0.0;
     for (int i = 0; i < x * y; ++i) {
         checksum += src[i];
