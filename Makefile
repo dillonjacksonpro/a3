@@ -66,7 +66,7 @@ my_stencil_omp: my_stencil_omp.cpp
 
 my_stencil_acc: my_stencil_acc.cpp
 	@command -v $(NVCXX) >/dev/null 2>&1 || { echo "Error: nvc++ not found in PATH"; exit 1; }
-	$(NVCXX) $(ACCFLAGS) -Mnofma -DSTENCIL_USE_OPENACC -o $@ my_stencil_acc.cpp
+	$(NVCXX) $(ACCFLAGS) -DSTENCIL_USE_OPENACC -o $@ my_stencil_acc.cpp
 
 clean:
 	rm -f stencil_serial stencil_omp stencil_acc stencil_cuda my_stencil_omp my_stencil_acc
