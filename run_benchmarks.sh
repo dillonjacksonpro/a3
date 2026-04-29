@@ -31,3 +31,11 @@ fi
 if [ -x ./stencil_cuda ]; then
     run_case ./stencil_cuda 8192 8192 1000 16 16
 fi
+
+if [ -x ./my_stencil_omp ]; then
+    run_case ./my_stencil_omp 8192 8192 1000 16
+fi
+
+if [ -x ./my_stencil_acc ]; then
+    run_case ./my_stencil_acc 8192 8192 1000
+fi

@@ -10,7 +10,7 @@ ACCFLAGS   ?= -O3 -std=c++17 -acc -gpu=$(ACC_GPU)
 CUDA_ARCH  ?= sm_80
 ACC_GPU    ?= cc80
 
-.PHONY: cpu gpu all serial omp acc cuda clean help
+.PHONY: cpu gpu all serial omp acc cuda my_omp my_acc clean help
 
 cpu: stencil_serial stencil_omp
 
@@ -26,6 +26,10 @@ acc: stencil_acc
 
 cuda: stencil_cuda
 
+my_omp: my_stencil_omp
+
+my_acc: my_stencil_acc
+
 help:
 	@echo "Targets:"
 	@echo "  make cpu          Build stencil_serial and stencil_omp"
@@ -35,6 +39,8 @@ help:
 	@echo "  make omp          Build the OpenMP starter"
 	@echo "  make acc          Build the OpenACC starter"
 	@echo "  make cuda         Build the CUDA starter from stencil.cpp"
+	@echo "  make my_omp       Build my_stencil_omp from my_stencil_omp.cpp"
+	@echo "  make my_acc       Build my_stencil_acc from my_stencil_acc.cpp"
 	@echo "  make clean        Remove executables"
 	@echo ""
 	@echo "Optional overrides:"
@@ -55,5 +61,12 @@ stencil_cuda: stencil.cpp
 	@command -v $(NVCC) >/dev/null 2>&1 || { echo "Error: nvcc not found in PATH"; exit 1; }
 	$(NVCC) -x cu $(NVCCFLAGS) -DSTENCIL_USE_CUDA -o $@ stencil.cpp
 
+my_stencil_omp: my_stencil_omp.cpp
+	$(CXX) $(BASEFLAGS) $(OMPFLAGS) -DSTENCIL_USE_OPENMP -o $@ my_stencil_omp.cpp
+
+my_stencil_acc: my_stencil_acc.cpp
+	@command -v $(NVCXX) >/dev/null 2>&1 || { echo "Error: nvc++ not found in PATH"; exit 1; }
+	$(NVCXX) $(ACCFLAGS) -DSTENCIL_USE_OPENACC -o $@ my_stencil_acc.cpp
+
 clean:
-	rm -f stencil_serial stencil_omp stencil_acc stencil_cuda
+	rm -f stencil_serial stencil_omp stencil_acc stencil_cuda my_stencil_omp my_stencil_acc
